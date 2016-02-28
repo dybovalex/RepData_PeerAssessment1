@@ -1,0 +1,129 @@
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+
+## Loading and preprocessing the data
+
+```{r}
+data = read.csv("activity.csv")
+head(data)
+class(data)
+data.clean = data[complete.cases(data), ]
+```
+
+## What is mean total number of steps taken per day?
+
+a histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+library("ggplot2")
+g = ggplot(data.clean, aes(steps))
+g+geom_histogram(binwidth = 30)
+```
+
+mean and median total number of steps taken per day
+
+```{r}
+Data_day = aggregate(steps ~ date, data=data, FUN = "sum")
+print(mean(Data_day$steps))
+print(median(Data_day$steps))
+```
+
+
+## What is the average daily activity pattern?
+
+calculating the average number of steps taken, averaged across all days
+
+```{r}
+data.average <- aggregate(steps ~ interval, data=data.clean, FUN = "mean")
+head(data.average)
+```
+
+ploting the data
+```{r, echo=TRUE}
+p <- ggplot(data.average, aes(x= interval, y=steps))
+p+geom_line(col="red")
+```
+
+interval, on average across all the days in the dataset,contains the maximum number of steps
+
+```{r, echo=TRUE}
+data.average[data.average$steps==max(data.average$steps),]$interval
+```
+
+
+## Imputing missing values
+number of missing values
+total
+```{r}
+sum(!complete.cases(data))
+```
+in steps column
+```{r}
+sum(is.na(data$steps))
+```
+in date column
+```{r}
+sum(is.na(data$date))
+```
+in interval column 
+```{r}
+sum(is.na(data$interval))
+```
+filling the missing values
+```{r}
+data.final = data.frame(steps=integer(0), date=character(0), interval=integer(0))
+
+for (i in unique(data$interval)) {
+    data.NA <- subset(data, interval==i)
+    mean.NA = mean(data.NA$steps[!is.na(data.NA$steps)])
+    data.NA[is.na(data.NA)]<-mean.NA
+    data.final <- rbind(data.final, data.NA)
+    }
+```
+
+a histogram of the total number of steps taken each day
+```{r}
+library(ggplot2)
+h<-ggplot(data.final, aes(steps))
+h+geom_histogram()
+```
+calculating mean and median
+```{r}
+Data_day.final = aggregate(steps ~ date, data=data.final, FUN = "sum")
+print(mean(Data_day.final$steps))
+print(median(Data_day.final$steps))
+```
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+converting date column to date format
+```{r}
+data$date <- as.Date(data$date, format="%Y-%m-%d")
+class(data.final$date)
+
+library(chron)
+
+data.weekend <- data.frame(data, weekend = is.weekend(data$date))
+
+Avr.weekday <- aggregate(steps ~ interval + weekend, data=data.weekend, FUN = "mean")
+```
+plotting weekday data
+```{r}
+library(ggplot2)
+k<-ggplot(Avr.weekday, aes(x=interval, y=steps))
+k+geom_line(col="red")+facet_grid(weekend~.)+
+  labs(title = "Number of steps between weekdays and weekends")
+```
+
+
+
+
+
+
